@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MedTrack">
+<meta name="theme-color" content="#1a4a3a">
+<title>តាមដានថ្នាំ | MedTrack</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Khmer:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-dark: #1a4a3a;
+    --green-mid:  #2d6b55;
+    --green-soft: #4a9070;
+    --green-pale: #e8f4f0;
+    --coral:      #c0392b;
+    --coral-soft: #f9e8e6;
+    --gold:       #d4a017;
+    --gold-soft:  #fdf5e0;
+    --text-main:  #1a1a1a;
+    --text-sub:   #666;
+    --text-pale:  #999;
+    --bg:         #f4f6f5;
+    --white:      #ffffff;
+    --shadow:     0 2px 12px rgba(0,0,0,0.08);
+    --radius:     16px;
+    --radius-sm:  10px;
+    --safe-top:   env(safe-area-inset-top, 0px);
+    --safe-bot:   env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; font-family: 'Noto Sans Khmer', 'Inter', sans-serif; background: var(--bg); color: var(--text-main); overscroll-behavior: none; }
+
+  #app { display: flex; flex-direction: column; height: 100%; max-width: 480px; margin: 0 auto; }
+  #header { background: var(--green-dark); color: #fff; padding: calc(var(--safe-top) + 16px) 20px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  #header-title h1 { font-size: 20px; font-weight: 700; }
+  #header-title .subtitle { font-size: 11px; opacity: 0.7; margin-top: 2px; }
+  #lang-toggle { background: rgba(255,255,255,0.15); border: none; color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  #main { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; padding-bottom: calc(80px + var(--safe-bot)); }
+
+  #hero { background: linear-gradient(135deg, var(--green-dark) 0%, var(--green-mid) 100%); color: #fff; border-radius: var(--radius); padding: 20px; position: relative; overflow: hidden; }
+  #hero::before { content:''; position:absolute; top:-30px; right:-30px; width:120px; height:120px; background:rgba(255,255,255,0.05); border-radius:50%; }
+  #hero-label { font-size: 12px; opacity: 0.7; margin-bottom: 4px; }
+  #hero-time { font-size: 42px; font-weight: 700; line-height: 1; font-family: 'Inter', sans-serif; }
+  #hero-med { font-size: 16px; font-weight: 600; margin-top: 4px; }
+  #hero-dose { font-size: 13px; opacity: 0.8; }
+  #hero-status { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; }
+  #hero-overdue { font-size: 13px; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; }
+  #hero-progress-wrap { margin-top: 12px; }
+  #hero-progress-label { font-size: 11px; opacity: 0.7; margin-bottom: 4px; }
+  #hero-progress-bar { height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; }
+  #hero-progress-fill { height: 100%; background: #fff; border-radius: 2px; transition: width 0.5s ease; }
+  #hero-empty { text-align: center; padding: 10px 0; opacity: 0.8; font-size: 15px; }
+
+  #alarm-banner { background: var(--coral); color: #fff; border-radius: var(--radius); padding: 16px 20px; display: none; animation: pulse 1.5s infinite; }
+  #alarm-banner.active { display: block; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.85} }
+  #alarm-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  #alarm-body { font-size: 13px; opacity: 0.9; margin-bottom: 12px; }
+  #alarm-btn { background: #fff; color: var(--coral); border: none; border-radius: 8px; padding: 10px 20px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+  .section-title::before { content:''; width:4px; height:14px; background: var(--green-soft); border-radius: 2px; }
+
+  #dose-list { display: flex; flex-direction: column; gap: 10px; }
+  .dose-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: var(--shadow); border-left: 4px solid transparent; transition: opacity 0.2s; }
+  .dose-card.taken { opacity: 0.5; border-left-color: var(--green-soft) !important; }
+  .dose-card.overdue { border-left-color: var(--coral) !important; background: var(--coral-soft); }
+  .dose-card.upcoming { border-left-color: var(--gold) !important; }
+  .dose-time { font-size: 13px; font-weight: 700; color: var(--text-sub); min-width: 50px; font-family: 'Inter', sans-serif; }
+  .dose-color { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .dose-info { flex: 1; }
+  .dose-name { font-size: 15px; font-weight: 600; }
+  .dose-detail { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .dose-stock { font-size: 11px; margin-top: 3px; padding: 2px 7px; border-radius: 10px; display: inline-block; background: var(--green-pale); color: var(--green-dark); }
+  .dose-stock.low { background: var(--gold-soft); color: #8a6000; }
+  .dose-stock.empty { background: var(--coral-soft); color: var(--coral); }
+  .dose-btn { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--green-soft); background: transparent; color: var(--green-soft); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .dose-btn.done { background: var(--green-soft); border-color: var(--green-soft); color: #fff; }
+  .dose-empty { text-align: center; padding: 30px; color: var(--text-pale); font-size: 14px; }
+
+  #med-list { display: flex; flex-direction: column; gap: 10px; }
+  .med-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px 16px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 12px; }
+  .med-color-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .med-name { font-size: 15px; font-weight: 600; }
+  .med-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .med-stock-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .med-stock-val { font-size: 22px; font-weight: 700; font-family: 'Inter', sans-serif; color: var(--green-dark); }
+  .med-stock-label { font-size: 12px; color: var(--text-sub); }
+  .stock-btns { display: flex; gap: 6px; margin-left: auto; }
+  .stock-btn { width: 32px; height: 32px; border-radius: 8px; border: none; font-size: 18px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Inter', sans-serif; }
+  .stock-btn.minus { background: var(--coral-soft); color: var(--coral); }
+  .stock-btn.plus  { background: var(--green-pale); color: var(--green-dark); }
+  .med-edit-btn { background: var(--bg); border: none; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: var(--text-sub); cursor: pointer; font-family: inherit; }
+
+  #fab { position: fixed; bottom: calc(24px + var(--safe-bot)); background: var(--green-dark); color: #fff; border: none; border-radius: 28px; padding: 14px 24px; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(26,74,58,0.4); z-index: 100; font-family: inherit; }
+  #fab .fab-icon { font-size: 20px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: none; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 20px 20px 0 0; padding: 24px 20px calc(24px + var(--safe-bot)); width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+  .modal-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 20px; }
+  .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: var(--radius-sm); font-size: 15px; font-family: inherit; background: var(--bg); color: var(--text-main); outline: none; }
+  .form-input:focus { border-color: var(--green-soft); }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .times-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .time-row { display: flex; align-items: center; gap: 8px; }
+  .time-row .form-input { flex: 1; }
+  .time-del { background: var(--coral-soft); color: var(--coral); border: none; border-radius: 8px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .add-time-btn { background: var(--green-pale); color: var(--green-dark); border: none; border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; font-family: inherit; margin-bottom: 4px; }
+  .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+  .color-swatch { width: 36px; height: 36px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: transform 0.1s; }
+  .color-swatch.selected { border-color: var(--text-main); transform: scale(1.15); }
+  .days-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .day-btn { padding: 6px 12px; border-radius: 20px; border: 1.5px solid #ddd; background: transparent; font-size: 13px; cursor: pointer; font-family: inherit; color: var(--text-main); }
+  .day-btn.selected { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+  .btn-primary { flex: 1; background: var(--green-dark); color: #fff; border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-secondary { padding: 14px 20px; background: var(--bg); color: var(--text-main); border: none; border-radius: var(--radius-sm); font-size: 15px; cursor: pointer; font-family: inherit; }
+  .btn-danger { padding: 14px 20px; background: var(--coral-soft); color: var(--coral); border: none; border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+
+  #tab-bar { display: flex; background: var(--white); border-top: 1px solid #eee; padding-bottom: var(--safe-bot); flex-shrink: 0; }
+  .tab { flex: 1; padding: 12px 4px 10px; border: none; background: transparent; font-size: 10px; color: var(--text-pale); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; font-family: inherit; }
+  .tab.active { color: var(--green-dark); }
+  .tab-icon { font-size: 20px; }
+  .tab-pages > div { display: none; }
+  .tab-pages > div.active { display: block; }
+
+  .low-stock-banner { background: var(--gold-soft); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+  .low-stock-banner .icon { font-size: 20px; }
+  .low-stock-banner .text { font-size: 13px; color: #8a6000; flex: 1; }
+
+  .setting-row { background: var(--white); border-radius: var(--radius-sm); padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); margin-bottom: 10px; }
+  .setting-label { font-size: 15px; font-weight: 500; }
+  .setting-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .toggle { width: 48px; height: 28px; border-radius: 14px; background: #ddd; position: relative; cursor: pointer; transition: background 0.2s; flex-shrink: 0; border: none; }
+  .toggle.on { background: var(--green-soft); }
+  .toggle::after { content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  .toggle.on::after { transform: translateX(20px); }
+  .cal-steps { font-size: 13px; color: var(--text-sub); line-height: 1.7; margin-top: 4px; }
+  .cal-steps b { color: var(--text-main); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-title">
+      <div>
+        <h1 id="app-title">តាមដានថ្នាំ</h1>
+        <div class="subtitle" id="app-sub">MedTrack</div>
+      </div>
+    </div>
+    <button id="lang-toggle" onclick="toggleLang()">EN</button>
+  </div>
+
+  <div id="main">
+    <div id="alarm-banner">
+      <div id="alarm-title"></div>
+      <div id="alarm-body"></div>
+      <button id="alarm-btn" onclick="dismissAlarm()"></button>
+    </div>
+
+    <div class="tab-pages">
+      <!-- TODAY -->
+      <div id="page-today" class="active">
+        <div id="hero" style="margin-bottom:16px"><div id="hero-content"></div></div>
+        <div id="low-stock-section"></div>
+        <div class="section-title" id="lbl-today" style="margin-bottom:10px">Today</div>
+        <div id="dose-list"></div>
+      </div>
+
+      <!-- MEDICATIONS -->
+      <div id="page-meds">
+        <div class="section-title" id="lbl-mymeds" style="margin-bottom:12px">My Medications</div>
+        <div id="med-list"></div>
+        <div style="height:20px"></div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="page-settings">
+        <div class="section-title" id="lbl-settings" style="margin-bottom:12px">Settings</div>
+
+        <div class="setting-row">
+          <div>
+            <div class="setting-label" id="lbl-alarm"></div>
+            <div class="setting-sub" id="lbl-alarm-sub"></div>
+          </div>
+          <button class="toggle on" id="alarm-toggle" onclick="toggleAlarmSetting()"></button>
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label" id="lbl-low-stock-thresh"></div>
+            <div class="setting-sub" id="lbl-low-stock-thresh-sub"></div>
+          </div>
+          <input type="number" class="form-input" id="low-stock-input" style="width:80px;text-align:center" min="1" max="99" onchange="saveLowStockThreshold(this.value)">
+        </div>
+
+        <div class="section-title" style="margin:20px 0 12px" id="lbl-lockscreen"></div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px;">
+          <div>
+            <div class="setting-label" id="lbl-cal"></div>
+            <div class="setting-sub" id="lbl-cal-sub"></div>
+          </div>
+          <button class="btn-primary" style="width:100%" onclick="downloadICS()" id="btn-cal"></button>
+          <div class="cal-steps" id="cal-steps"></div>
+        </div>
+
+        <div class="section-title" style="margin:20px 0 12px" id="lbl-data"></div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px;">
+          <div>
+            <div class="setting-label" id="lbl-export"></div>
+            <div class="setting-sub" id="lbl-export-sub"></div>
+          </div>
+          <button class="btn-primary" style="width:100%" onclick="exportData()" id="btn-export"></button>
+        </div>
+        <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:12px;margin-top:10px">
+          <div>
+            <div class="setting-label" id="lbl-import"></div>
+            <div class="setting-sub" id="lbl-import-sub"></div>
+          </div>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn-secondary" style="width:100%" onclick="document.getElementById('import-file').click()" id="btn-import"></button>
+        </div>
+        <div style="text-align:center;color:var(--text-pale);font-size:12px;margin-top:24px">
+          MedTrack · KCPH · v3.1<br>
+          <span id="lbl-local-note"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="fab" onclick="openAddMed()">
+    <span class="fab-icon">＋</span>
+    <span id="fab-label"></span>
+  </button>
+
+  <div id="tab-bar">
+    <button class="tab active" id="tab-today" onclick="switchTab('today')">
+      <span class="tab-icon">🏠</span><span id="lbl-tab-today"></span>
+    </button>
+    <button class="tab" id="tab-meds" onclick="switchTab('meds')">
+      <span class="tab-icon">💊</span><span id="lbl-tab-meds"></span>
+    </button>
+    <button class="tab" id="tab-settings" onclick="switchTab('settings')">
+      <span class="tab-icon">⚙️</span><span id="lbl-tab-settings"></span>
+    </button>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-overlay" id="med-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <input type="hidden" id="edit-med-id">
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-med-name"></label>
+      <input type="text" class="form-input" id="input-name" placeholder="Amoxicillin">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" id="lbl-med-dose"></label>
+        <input type="text" class="form-input" id="input-dose" placeholder="500mg">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="lbl-med-food"></label>
+        <select class="form-input" id="input-food">
+          <option value="before"></option>
+          <option value="after" selected></option>
+          <option value="any"></option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-med-color"></label>
+      <div class="color-picker" id="color-picker"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-med-freq"></label>
+      <select class="form-input" id="input-freq" onchange="renderDaysPicker()">
+        <option value="daily"></option>
+        <option value="weekdays"></option>
+        <option value="custom"></option>
+      </select>
+    </div>
+    <div class="form-group" id="days-group" style="display:none">
+      <label class="form-label" id="lbl-med-days"></label>
+      <div class="days-picker" id="days-picker"></div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" id="lbl-med-times"></label>
+      <div class="times-list" id="times-list"></div>
+      <button class="add-time-btn" onclick="addTimeRow()" id="btn-add-time"></button>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" id="lbl-med-stock"></label>
+        <input type="number" class="form-input" id="input-stock" placeholder="30" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="lbl-med-low"></label>
+        <input type="number" class="form-input" id="input-low-thresh" placeholder="7" min="1">
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeMedModal()" id="btn-cancel"></button>
+      <button class="btn-danger" id="btn-delete" onclick="deleteMed()" style="display:none"></button>
+      <button class="btn-primary" onclick="saveMed()" id="btn-save"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA MODEL
+// ══════════════════════════════════════════════
+const DAYS_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const DAYS_KM = ['អា','ច','អ','ពុ','ព្រ','សុ','ស'];
+const FOOD_EN = { before:'Before meals', after:'After meals', any:'Any time' };
+const FOOD_KM = { before:'មុនអាហារ', after:'ក្រោយអាហារ', any:'ពេលណាក៏បាន' };
+
+let state = {
+  lang: 'km',
+  meds: [],           // { id, name, dose, food, color, freq, days, times, stock, lowThresh }
+  logs: {},           // { 'YYYY-MM-DD': { 'medId|HH:MM': true } }
+  alarmEnabled: true,
+  lowStockThreshold: 7
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('medtrack_v3');
+    if (raw) Object.assign(state, JSON.parse(raw));
+  } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('medtrack_v3', JSON.stringify(state)); } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+// TRANSLATIONS — reviewed for professional medical Khmer
+// ══════════════════════════════════════════════
+const T = {
+  km: {
+    appSub:'ការរំលឹកប្រើថ្នាំទាន់ពេលវេលា',
+    today:'ថ្ងៃនេះ', mymeds:'ថ្នាំរបស់ខ្ញុំ', settings:'ការកំណត់',
+    addMed:'បន្ថែមថ្នាំ', editMed:'កែសម្រួលថ្នាំ',
+    nextDose:'ដូសបន្ទាប់', noDoses:'គ្មានថ្នាំត្រូវប្រើនៅថ្ងៃនេះទេ',
+    alarmTitle:'ដល់ម៉ោងប្រើថ្នាំ', alarmDismiss:'បានប្រើរួចហើយ',
+    stockLeft:'គ្រាប់នៅសល់', pills:'គ្រាប់',
+    inAlarm:'សំឡេងរោទ៍ក្នុងកម្មវិធី', alarmSub:'បន្លឺសំឡេងនៅពេលដល់ម៉ោងប្រើថ្នាំ (ពេលកម្មវិធីបើក)',
+    lowThresh:'កម្រិតព្រមានស្តុកទាប', lowThreshSub:'ជូនដំណឹងនៅពេលស្តុកនៅសល់តិចជាងចំនួននេះ',
+    lockscreen:'ការរំលឹកលើអេក្រង់ចាក់សោ',
+    calLabel:'បញ្ចូលទៅប្រតិទិន iPhone',
+    calSub:'ទទួលការជូនដំណឹងលើអេក្រង់ចាក់សោ ទោះបីកម្មវិធីនេះបិទក៏ដោយ ដោយប្រើកម្មវិធីប្រតិទិន (Calendar) របស់ទូរស័ព្ទ',
+    calBtn:'ទាញយកកាលវិភាគថ្នាំ (.ics)',
+    calSteps:'<b>របៀបប្រើ៖</b><br>១. ចុចប៊ូតុងខាងលើ ដើម្បីទាញយកឯកសារកាលវិភាគ<br>២. បើកឯកសារនោះ រួចចុច <b>Add All</b> ដើម្បីបញ្ចូលទៅក្នុងប្រតិទិន<br>៣. iPhone នឹងជូនដំណឹងអ្នកនៅរាល់ម៉ោងប្រើថ្នាំ ដោយស្វ័យប្រវត្តិ<br><b>ចំណាំ៖</b> បន្ទាប់ពីកែប្រែកាលវិភាគថ្នាំ សូមទាញយក និងបញ្ចូលម្ដងទៀត',
+    dataSection:'ទិន្នន័យ',
+    exportData:'នាំចេញទិន្នន័យ', exportSub:'រក្សាទុកទិន្នន័យទាំងអស់ជាឯកសារ JSON សម្រាប់បម្រុងទុក',
+    importData:'នាំចូលទិន្នន័យ', importSub:'ស្ដារទិន្នន័យពីឯកសារ JSON ដែលបាននាំចេញពីមុន',
+    exportBtn:'នាំចេញ JSON', importBtn:'នាំចូល JSON',
+    cancel:'បោះបង់', del:'លុប', save:'រក្សាទុក',
+    medName:'ឈ្មោះថ្នាំ', dose:'កម្រិតប្រើ', withFood:'ការប្រើជាមួយអាហារ',
+    color:'ពណ៌សម្គាល់', freq:'កាលវិភាគប្រើថ្នាំ', days:'ថ្ងៃប្រើថ្នាំ',
+    times:'ម៉ោងប្រើថ្នាំ', addTime:'+ បន្ថែមម៉ោង',
+    stockNow:'ស្តុកបច្ចុប្បន្ន (គ្រាប់)', lowAlert:'ព្រមាននៅពេលនៅសល់',
+    allDone:'បានប្រើថ្នាំគ្រប់ដូសសម្រាប់ថ្ងៃនេះ',
+    localNote:'ទិន្នន័យត្រូវបានរក្សាទុកតែក្នុងឧបករណ៍នេះប៉ុណ្ណោះ',
+    before:'មុនអាហារ', after:'ក្រោយអាហារ', any:'ពេលណាក៏បាន',
+    everyDay:'ជារៀងរាល់ថ្ងៃ', weekdays:'ថ្ងៃធ្វើការ (ចន្ទ–សុក្រ)', customDays:'ជ្រើសរើសថ្ងៃ',
+    noMedsYet:'មិនទាន់មានថ្នាំនៅឡើយទេ — ចុច + ដើម្បីបន្ថែម',
+    noMedsHero:'មិនទាន់មានថ្នាំនៅឡើយទេ',
+    needName:'សូមបញ្ចូលឈ្មោះថ្នាំ',
+    needTime:'សូមបន្ថែមម៉ោងប្រើថ្នាំយ៉ាងតិចមួយ',
+    confirmDelete:'តើអ្នកពិតជាចង់លុបថ្នាំនេះមែនទេ?',
+    confirmImport:'ទិន្នន័យបច្ចុប្បន្នទាំងអស់នឹងត្រូវជំនួសដោយទិន្នន័យថ្មី។ តើបន្តទេ?',
+    importOk:'នាំចូលទិន្នន័យបានជោគជ័យ',
+    importBad:'ទម្រង់ឯកសារមិនត្រឹមត្រូវ',
+    minOverdue:'ហួសម៉ោង {n} នាទី',
+    minLeft:'នៅសល់ {n} នាទីទៀត',
+    todayCount:'ថ្ងៃនេះ',
+    noMedsCal:'សូមបន្ថែមថ្នាំជាមុនសិន',
+  },
+  en: {
+    appSub:'On-time medication reminders',
+    today:'Today', mymeds:'My Medications', settings:'Settings',
+    addMed:'Add Medication', editMed:'Edit Medication',
+    nextDose:'Next dose', noDoses:'No medications scheduled for today',
+    alarmTitle:'Time to take your medication', alarmDismiss:'Mark as taken',
+    stockLeft:'pills left', pills:'pills',
+    inAlarm:'In-app alarm', alarmSub:'Sound alert when a dose is due (while app is open)',
+    lowThresh:'Low stock warning level', lowThreshSub:'Alert when stock falls below this number',
+    lockscreen:'Lock Screen Reminders',
+    calLabel:'Add to iPhone Calendar',
+    calSub:'Get lock screen notifications even when this app is closed, using your phone\u2019s Calendar app',
+    calBtn:'Download medication schedule (.ics)',
+    calSteps:'<b>How to use:</b><br>1. Tap the button above to download the schedule file<br>2. Open the file, then tap <b>Add All</b> to import into Calendar<br>3. Your iPhone will notify you at every dose time automatically<br><b>Note:</b> after changing your medication schedule, download and import again',
+    dataSection:'Data',
+    exportData:'Export data', exportSub:'Save all data as a JSON file for backup',
+    importData:'Import data', importSub:'Restore from a previously exported JSON file',
+    exportBtn:'Export JSON', importBtn:'Import JSON',
+    cancel:'Cancel', del:'Delete', save:'Save',
+    medName:'Medication name', dose:'Dose', withFood:'With food',
+    color:'Color tag', freq:'Schedule', days:'Days',
+    times:'Dose times', addTime:'+ Add time',
+    stockNow:'Current stock (pills)', lowAlert:'Warn when only',
+    allDone:'All doses taken for today',
+    localNote:'Data is stored only on this device',
+    before:'Before meals', after:'After meals', any:'Any time',
+    everyDay:'Every day', weekdays:'Weekdays (Mon\u2013Fri)', customDays:'Custom days',
+    noMedsYet:'No medications yet \u2014 tap + to add',
+    noMedsHero:'No medications added yet',
+    needName:'Please enter the medication name',
+    needTime:'Please add at least one dose time',
+    confirmDelete:'Are you sure you want to delete this medication?',
+    confirmImport:'All current data will be replaced by the imported data. Continue?',
+    importOk:'Import successful',
+    importBad:'Invalid file format',
+    minOverdue:'{n} min overdue',
+    minLeft:'in {n} min',
+    todayCount:'today',
+    noMedsCal:'Please add a medication first',
+  }
+};
+function t(k) { return (T[state.lang] || T.en)[k] || k; }
+function tf(k, n) { return t(k).replace('{n}', n); }
+
+// ══════════════════════════════════════════════
+// DATE/TIME HELPERS
+// ══════════════════════════════════════════════
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function nowMinutes() { const d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+function weekday() { return new Date().getDay(); }
+function fmtTime(tm) {
+  const [h,m] = tm.split(':').map(Number);
+  const ap = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return h12 + ':' + String(m).padStart(2,'0') + ' ' + ap;
+}
+function foodLabel(food) {
+  return state.lang === 'km' ? (FOOD_KM[food] || food || '') : (FOOD_EN[food] || food || '');
+}
+function isTodayScheduled(med) {
+  if (med.freq === 'weekdays') return weekday() >= 1 && weekday() <= 5;
+  if (med.freq === 'custom') return (med.days || []).includes(weekday());
+  return true;
+}
+function logKey(medId, time) { return medId + '|' + time; }
+function isTaken(medId, time) {
+  const tk = todayKey();
+  return !!(state.logs[tk] && state.logs[tk][logKey(medId,time)]);
+}
+function markTaken(medId, time, val) {
+  const tk = todayKey();
+  if (!state.logs[tk]) state.logs[tk] = {};
+  const med = state.meds.find(m => m.id === medId);
+  if (val) {
+    state.logs[tk][logKey(medId,time)] = true;
+    if (med && med.stock > 0) med.stock--;
+  } else {
+    delete state.logs[tk][logKey(medId,time)];
+    if (med && med.stock !== null && med.stock !== undefined) med.stock++;
+  }
+  saveState();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// ALARM (in-app)
+// ══════════════════════════════════════════════
+let alarmInterval = null;
+let currentAlarm = null;
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} }
+  return audioCtx;
+}
+function beep(freq, dur, vol) {
+  try {
+    const ctx = getAudioCtx(); if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = freq; osc.type = 'sine';
+    gain.gain.setValueAtTime(vol || 0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    osc.start(); osc.stop(ctx.currentTime + dur);
+  } catch(e){}
+}
+function playAlarmSound() {
+  beep(880, 0.2, 0.4);
+  setTimeout(() => beep(1100, 0.2, 0.4), 250);
+  setTimeout(() => beep(880, 0.3, 0.4), 500);
+}
+function checkAlarms() {
+  if (!state.alarmEnabled) return;
+  const now = nowMinutes();
+  for (const med of state.meds) {
+    if (!isTodayScheduled(med)) continue;
+    for (const time of (med.times || [])) {
+      const [h,m] = time.split(':').map(Number);
+      if (h*60+m === now && !isTaken(med.id, time)) {
+        if (!currentAlarm || currentAlarm.key !== logKey(med.id,time)) {
+          currentAlarm = { key: logKey(med.id,time), med, time };
+          showAlarmBanner(med, time);
+          playAlarmSound();
+        }
+        return;
+      }
+    }
+  }
+}
+function showAlarmBanner(med, time) {
+  document.getElementById('alarm-title').textContent = t('alarmTitle') + ' — ' + med.name;
+  document.getElementById('alarm-body').textContent = fmtTime(time) + (med.dose ? ' · ' + med.dose : '') + ' · ' + foodLabel(med.food);
+  document.getElementById('alarm-btn').textContent = t('alarmDismiss');
+  document.getElementById('alarm-banner').classList.add('active');
+  if (alarmInterval) clearInterval(alarmInterval);
+  alarmInterval = setInterval(() => { if (currentAlarm) playAlarmSound(); }, 10000);
+}
+function dismissAlarm() {
+  if (!currentAlarm) return;
+  markTaken(currentAlarm.med.id, currentAlarm.time, true);
+  currentAlarm = null;
+  document.getElementById('alarm-banner').classList.remove('active');
+  if (alarmInterval) { clearInterval(alarmInterval); alarmInterval = null; }
+}
+
+// ══════════════════════════════════════════════
+// ICS CALENDAR EXPORT — lock screen reminders via iOS Calendar
+// ══════════════════════════════════════════════
+function icsEscape(s) {
+  return String(s || '').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+}
+function buildICS() {
+  const pad = n => String(n).padStart(2,'0');
+  const now = new Date();
+  const dtstamp = now.getUTCFullYear() + pad(now.getUTCMonth()+1) + pad(now.getUTCDate()) +
+    'T' + pad(now.getUTCHours()) + pad(now.getUTCMinutes()) + pad(now.getUTCSeconds()) + 'Z';
+  const BYDAY = ['SU','MO','TU','WE','TH','FR','SA'];
+  const events = [];
+  state.meds.forEach(med => {
+    (med.times || []).forEach(time => {
+      const [h,m] = time.split(':');
+      const d = new Date();
+      const dtstart = d.getFullYear() + pad(d.getMonth()+1) + pad(d.getDate()) +
+        'T' + String(h).padStart(2,'0') + String(m).padStart(2,'0') + '00';
+      let rrule = 'FREQ=DAILY';
+      if (med.freq === 'weekdays') rrule = 'FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR';
+      else if (med.freq === 'custom') {
+        const days = (med.days || []).map(x => BYDAY[x]).join(',');
+        rrule = days ? 'FREQ=WEEKLY;BYDAY=' + days : 'FREQ=DAILY';
+      }
+      const summary = '\uD83D\uDC8A ' + icsEscape(med.name) + (med.dose ? ' ' + icsEscape(med.dose) : '');
+      const desc = icsEscape(foodLabel(med.food));
+      events.push([
+        'BEGIN:VEVENT',
+        'UID:' + med.id + '-' + time.replace(':','') + '@medtrack.kcph',
+        'DTSTAMP:' + dtstamp,
+        'DTSTART:' + dtstart,
+        'DURATION:PT5M',
+        'RRULE:' + rrule,
+        'SUMMARY:' + summary,
+        'DESCRIPTION:' + desc,
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:' + summary,
+        'TRIGGER:-PT0M',
+        'END:VALARM',
+        'END:VEVENT'
+      ].join('\r\n'));
+    });
+  });
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//KCPH//MedTrack 3.1//KM',
+    'CALSCALE:GREGORIAN',
+    'X-WR-CALNAME:MedTrack',
+    events.join('\r\n'),
+    'END:VCALENDAR'
+  ].join('\r\n');
+}
+function downloadICS() {
+  if (!state.meds.length) { alert(t('noMedsCal')); return; }
+  const ics = buildICS();
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'medtrack-reminders.ics';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderAll() {
+  renderHero();
+  renderDoseList();
+  renderMedList();
+  renderLowStockAlerts();
+  applyTranslations();
+}
+
+function applyTranslations() {
+  const set = (id, key) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
+  document.title = state.lang === 'km' ? 'តាមដានថ្នាំ | MedTrack' : 'MedTrack';
+  document.getElementById('app-title').textContent = state.lang === 'km' ? 'តាមដានថ្នាំ' : 'MedTrack';
+  document.getElementById('app-sub').textContent = t('appSub');
+  document.getElementById('lang-toggle').textContent = state.lang === 'km' ? 'EN' : 'ខ្មែរ';
+  document.getElementById('alarm-btn').textContent = t('alarmDismiss');
+  set('lbl-today','today'); set('lbl-mymeds','mymeds'); set('lbl-settings','settings');
+  set('fab-label','addMed');
+  set('lbl-tab-today','today'); set('lbl-tab-meds','mymeds'); set('lbl-tab-settings','settings');
+  set('lbl-alarm','inAlarm'); set('lbl-alarm-sub','alarmSub');
+  set('lbl-low-stock-thresh','lowThresh'); set('lbl-low-stock-thresh-sub','lowThreshSub');
+  set('lbl-lockscreen','lockscreen');
+  set('lbl-cal','calLabel'); set('lbl-cal-sub','calSub'); set('btn-cal','calBtn');
+  document.getElementById('cal-steps').innerHTML = t('calSteps');
+  set('lbl-data','dataSection');
+  set('lbl-export','exportData'); set('lbl-export-sub','exportSub');
+  set('lbl-import','importData'); set('lbl-import-sub','importSub');
+  set('btn-export','exportBtn'); set('btn-import','importBtn');
+  set('lbl-local-note','localNote');
+  const alarmToggle = document.getElementById('alarm-toggle');
+  if (alarmToggle) alarmToggle.className = 'toggle' + (state.alarmEnabled ? ' on' : '');
+  const lowInput = document.getElementById('low-stock-input');
+  if (lowInput) lowInput.value = state.lowStockThreshold || 7;
+  updateModalLabels();
+}
+
+function renderHero() {
+  const el = document.getElementById('hero-content');
+  const now = nowMinutes();
+
+  let candidates = [];
+  for (const med of state.meds) {
+    if (!isTodayScheduled(med)) continue;
+    for (const time of (med.times || [])) {
+      if (!isTaken(med.id, time)) {
+        const [h,m] = time.split(':').map(Number);
+        candidates.push({ med, time, dm: h*60+m });
+      }
+    }
+  }
+  candidates.sort((a,b) => a.dm - b.dm);
+
+  if (!state.meds.length) {
+    el.innerHTML = '<div id="hero-empty">' + t('noMedsHero') + '</div>';
+    return;
+  }
+  if (!candidates.length) {
+    el.innerHTML = '<div id="hero-label">' + t('today') + '</div><div id="hero-empty" style="margin-top:8px">🎉 ' + t('allDone') + '</div>';
+    return;
+  }
+
+  const next = candidates[0];
+  const isOverdue = next.dm < now;
+  const diffMin = Math.abs(now - next.dm);
+  const diffText = isOverdue ? tf('minOverdue', diffMin) : tf('minLeft', diffMin);
+
+  let takenToday = 0, totalToday = 0;
+  for (const med of state.meds) {
+    if (!isTodayScheduled(med)) continue;
+    for (const time of (med.times||[])) {
+      totalToday++;
+      if (isTaken(med.id, time)) takenToday++;
+    }
+  }
+  const pct = totalToday ? Math.round(takenToday/totalToday*100) : 0;
+
+  el.innerHTML =
+    '<div id="hero-label">' + t('nextDose') + '</div>' +
+    '<div id="hero-time">' + fmtTime(next.time) + '</div>' +
+    '<div id="hero-med">' + next.med.name + '</div>' +
+    '<div id="hero-dose">' + (next.med.dose || '') + ' · ' + foodLabel(next.med.food) + '</div>' +
+    '<div id="hero-status"><span id="hero-overdue" style="' + (isOverdue?'background:rgba(192,57,43,0.45)':'') + '">' + diffText + '</span></div>' +
+    '<div id="hero-progress-wrap">' +
+      '<div id="hero-progress-label">' + takenToday + '/' + totalToday + ' ' + t('todayCount') + '</div>' +
+      '<div id="hero-progress-bar"><div id="hero-progress-fill" style="width:' + pct + '%"></div></div>' +
+    '</div>';
+}
+
+function renderDoseList() {
+  const el = document.getElementById('dose-list');
+  const now = nowMinutes();
+  let doses = [];
+  for (const med of state.meds) {
+    if (!isTodayScheduled(med)) continue;
+    for (const time of (med.times || [])) {
+      const [h,m] = time.split(':').map(Number);
+      doses.push({ med, time, dm: h*60+m, taken: isTaken(med.id, time) });
+    }
+  }
+  doses.sort((a,b) => a.dm - b.dm);
+
+  if (!doses.length) {
+    el.innerHTML = '<div class="dose-empty">' + t('noDoses') + '</div>';
+    return;
+  }
+
+  el.innerHTML = doses.map(d => {
+    const isOverdue = !d.taken && d.dm < now;
+    const isUpcoming = !d.taken && d.dm > now;
+    const cls = d.taken ? 'taken' : isOverdue ? 'overdue' : isUpcoming ? 'upcoming' : '';
+    const lowThresh = d.med.lowThresh || state.lowStockThreshold || 7;
+    let stockBadge = '';
+    if (d.med.stock !== undefined && d.med.stock !== null && d.med.stock !== '') {
+      const stockCls = d.med.stock === 0 ? 'empty' : d.med.stock <= lowThresh ? 'low' : '';
+      stockBadge = '<span class="dose-stock ' + stockCls + '">' + d.med.stock + ' ' + t('pills') + '</span>';
+    }
+    return '<div class="dose-card ' + cls + '" style="border-left-color:' + (d.med.color||'var(--green-soft)') + '">' +
+      '<div class="dose-time">' + fmtTime(d.time) + '</div>' +
+      '<div class="dose-color" style="background:' + (d.med.color||'#4a9070') + '20">💊</div>' +
+      '<div class="dose-info">' +
+        '<div class="dose-name">' + d.med.name + '</div>' +
+        '<div class="dose-detail">' + (d.med.dose||'') + ' · ' + foodLabel(d.med.food) + '</div>' +
+        stockBadge +
+      '</div>' +
+      '<button class="dose-btn ' + (d.taken?'done':'') + '" onclick="toggleTaken(\'' + d.med.id + '\',\'' + d.time + '\',' + d.taken + ')">' + (d.taken ? '✓' : '○') + '</button>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleTaken(medId, time, wasTaken) { markTaken(medId, time, !wasTaken); }
+
+function renderMedList() {
+  const el = document.getElementById('med-list');
+  if (!state.meds.length) {
+    el.innerHTML = '<div class="dose-empty">' + t('noMedsYet') + '</div>';
+    return;
+  }
+  const lowThresh = state.lowStockThreshold || 7;
+  el.innerHTML = state.meds.map(med => {
+    const stockCls = (med.stock===0) ? 'empty' : med.stock <= (med.lowThresh||lowThresh) ? 'low' : '';
+    const freqLabel = med.freq==='weekdays' ? t('weekdays') : med.freq==='custom' ? t('customDays') : t('everyDay');
+    const timesLabel = (med.times||[]).map(fmtTime).join(', ');
+    return '<div class="med-card">' +
+      '<div class="med-color-dot" style="background:' + (med.color||'#4a9070') + '"></div>' +
+      '<div class="med-info" style="flex:1">' +
+        '<div class="med-name">' + med.name + '</div>' +
+        '<div class="med-sub">' + (med.dose||'') + ' · ' + freqLabel + ' · ' + timesLabel + '</div>' +
+        '<div class="med-stock-row">' +
+          '<div>' +
+            '<div class="med-stock-val" style="' + (stockCls==='empty'?'color:var(--coral)':stockCls==='low'?'color:#8a6000':'') + '">' + (med.stock ?? '—') + '</div>' +
+            '<div class="med-stock-label">' + t('pills') + '</div>' +
+          '</div>' +
+          '<div class="stock-btns">' +
+            '<button class="stock-btn minus" onclick="adjustStock(\'' + med.id + '\',-1)">−</button>' +
+            '<button class="stock-btn plus"  onclick="adjustStock(\'' + med.id + '\',1)">＋</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<button class="med-edit-btn" onclick="openEditMed(\'' + med.id + '\')">✏️</button>' +
+    '</div>';
+  }).join('');
+}
+
+function adjustStock(medId, delta) {
+  const med = state.meds.find(m => m.id === medId);
+  if (!med) return;
+  med.stock = Math.max(0, (Number(med.stock)||0) + delta);
+  saveState();
+  renderAll();
+}
+
+function renderLowStockAlerts() {
+  const el = document.getElementById('low-stock-section');
+  const lowThresh = state.lowStockThreshold || 7;
+  const alerts = state.meds.filter(m => m.stock !== undefined && m.stock !== null && m.stock !== '' && m.stock <= (m.lowThresh||lowThresh));
+  if (!alerts.length) { el.innerHTML = ''; return; }
+  el.innerHTML = alerts.map(med =>
+    '<div class="low-stock-banner" style="margin-bottom:10px">' +
+      '<span class="icon">⚠️</span>' +
+      '<div class="text"><strong>' + med.name + '</strong> — ' + med.stock + ' ' + t('stockLeft') + '</div>' +
+    '</div>').join('');
+}
+
+// ══════════════════════════════════════════════
+// ADD / EDIT MEDICATION
+// ══════════════════════════════════════════════
+const MODAL_COLORS = ['#E05C5C','#E0885C','#D4A017','#4aA070','#2d6B55','#5B7FCC','#8B5CE0','#CC5B9A','#1a4a3a','#5BAACC'];
+let selectedColor = MODAL_COLORS[3];
+let selectedDays = [1,2,3,4,5];
+
+function openAddMed() {
+  document.getElementById('modal-title').textContent = t('addMed');
+  document.getElementById('edit-med-id').value = '';
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-dose').value = '';
+  document.getElementById('input-food').value = 'after';
+  document.getElementById('input-freq').value = 'daily';
+  document.getElementById('input-stock').value = '';
+  document.getElementById('input-low-thresh').value = '';
+  selectedColor = MODAL_COLORS[3];
+  selectedDays = [1,2,3,4,5];
+  document.getElementById('btn-delete').style.display = 'none';
+  renderColorPicker();
+  renderDaysPicker();
+  resetTimeRows(['08:00']);
+  document.getElementById('med-modal').classList.add('open');
+}
+
+function openEditMed(medId) {
+  const med = state.meds.find(m => m.id === medId);
+  if (!med) return;
+  document.getElementById('modal-title').textContent = t('editMed');
+  document.getElementById('edit-med-id').value = medId;
+  document.getElementById('input-name').value = med.name || '';
+  document.getElementById('input-dose').value = med.dose || '';
+  document.getElementById('input-food').value = med.food || 'after';
+  document.getElementById('input-freq').value = med.freq || 'daily';
+  document.getElementById('input-stock').value = med.stock ?? '';
+  document.getElementById('input-low-thresh').value = med.lowThresh ?? '';
+  selectedColor = med.color || MODAL_COLORS[3];
+  selectedDays = (med.days || [1,2,3,4,5]).slice();
+  document.getElementById('btn-delete').style.display = '';
+  renderColorPicker();
+  renderDaysPicker();
+  resetTimeRows(med.times && med.times.length ? med.times : ['08:00']);
+  document.getElementById('med-modal').classList.add('open');
+}
+
+function closeMedModal() { document.getElementById('med-modal').classList.remove('open'); }
+
+function renderColorPicker() {
+  document.getElementById('color-picker').innerHTML = MODAL_COLORS.map(c =>
+    '<div class="color-swatch ' + (c===selectedColor?'selected':'') + '" style="background:' + c + '" onclick="selectColor(\'' + c + '\')"></div>'
+  ).join('');
+}
+function selectColor(c) { selectedColor = c; renderColorPicker(); }
+
+function renderDaysPicker() {
+  const freq = document.getElementById('input-freq').value;
+  const grp = document.getElementById('days-group');
+  grp.style.display = freq === 'custom' ? '' : 'none';
+  if (freq !== 'custom') return;
+  const names = state.lang === 'km' ? DAYS_KM : DAYS_EN;
+  document.getElementById('days-picker').innerHTML = [0,1,2,3,4,5,6].map(d =>
+    '<button type="button" class="day-btn ' + (selectedDays.includes(d)?'selected':'') + '" onclick="toggleDay(' + d + ')">' + names[d] + '</button>'
+  ).join('');
+}
+function toggleDay(d) {
+  const i = selectedDays.indexOf(d);
+  if (i > -1) selectedDays.splice(i,1); else selectedDays.push(d);
+  renderDaysPicker();
+}
+
+function resetTimeRows(times) {
+  document.getElementById('times-list').innerHTML = '';
+  times.forEach(v => addTimeRow(v));
+}
+function addTimeRow(val) {
+  const el = document.getElementById('times-list');
+  const row = document.createElement('div');
+  row.className = 'time-row';
+  row.innerHTML = '<input type="time" class="form-input" value="' + (val||'08:00') + '"><button type="button" class="time-del" onclick="this.parentNode.remove()">✕</button>';
+  el.appendChild(row);
+}
+
+function saveMed() {
+  const name = document.getElementById('input-name').value.trim();
+  if (!name) { alert(t('needName')); return; }
+  const times = Array.from(document.querySelectorAll('#times-list .time-row input[type=time]')).map(i=>i.value).filter(Boolean);
+  if (!times.length) { alert(t('needTime')); return; }
+
+  const editId = document.getElementById('edit-med-id').value;
+  const med = {
+    id: editId || 'med_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    name,
+    dose: document.getElementById('input-dose').value.trim(),
+    food: document.getElementById('input-food').value,
+    color: selectedColor,
+    freq: document.getElementById('input-freq').value,
+    days: selectedDays.slice().sort(),
+    times: times.sort(),
+    stock: document.getElementById('input-stock').value !== '' ? Number(document.getElementById('input-stock').value) : null,
+    lowThresh: document.getElementById('input-low-thresh').value !== '' ? Number(document.getElementById('input-low-thresh').value) : null,
+  };
+
+  if (editId) {
+    const idx = state.meds.findIndex(m => m.id === editId);
+    if (idx > -1) state.meds[idx] = med;
+  } else {
+    state.meds.push(med);
+  }
+  saveState();
+  closeMedModal();
+  renderAll();
+}
+
+function deleteMed() {
+  const editId = document.getElementById('edit-med-id').value;
+  if (!editId) return;
+  if (!confirm(t('confirmDelete'))) return;
+  state.meds = state.meds.filter(m => m.id !== editId);
+  saveState();
+  closeMedModal();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+let currentTab = 'today';
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-pages > div').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('fab').style.display = (tab === 'settings') ? 'none' : 'flex';
+  if (tab === 'today') renderAll();
+}
+
+// ══════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════
+function toggleLang() {
+  state.lang = state.lang === 'km' ? 'en' : 'km';
+  saveState();
+  renderAll();
+  renderDaysPicker();
+}
+function toggleAlarmSetting() {
+  state.alarmEnabled = !state.alarmEnabled;
+  saveState();
+  applyTranslations();
+}
+function saveLowStockThreshold(val) {
+  state.lowStockThreshold = Math.max(1, parseInt(val)||7);
+  saveState();
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// EXPORT / IMPORT
+// ══════════════════════════════════════════════
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'medtrack-backup-' + todayKey() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function importData(evt) {
+  const file = evt.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.meds) throw new Error('bad');
+      if (!confirm(t('confirmImport'))) return;
+      Object.assign(state, imported);
+      saveState();
+      renderAll();
+      alert(t('importOk'));
+    } catch(err) {
+      alert(t('importBad'));
+    }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+// ══════════════════════════════════════════════
+// MODAL LABELS
+// ══════════════════════════════════════════════
+function updateModalLabels() {
+  const set = (id, key) => { const el = document.getElementById(id); if(el) el.textContent = t(key); };
+  set('lbl-med-name','medName');
+  set('lbl-med-dose','dose');
+  set('lbl-med-food','withFood');
+  set('lbl-med-color','color');
+  set('lbl-med-freq','freq');
+  set('lbl-med-days','days');
+  set('lbl-med-times','times');
+  set('btn-add-time','addTime');
+  set('lbl-med-stock','stockNow');
+  set('lbl-med-low','lowAlert');
+  set('btn-cancel','cancel');
+  set('btn-delete','del');
+  set('btn-save','save');
+  const freq = document.getElementById('input-freq');
+  if (freq && freq.options.length >= 3) {
+    freq.options[0].text = t('everyDay');
+    freq.options[1].text = t('weekdays');
+    freq.options[2].text = t('customDays');
+  }
+  const food = document.getElementById('input-food');
+  if (food && food.options.length >= 3) {
+    food.options[0].text = t('before');
+    food.options[1].text = t('after');
+    food.options[2].text = t('any');
+  }
+}
+
+// ══════════════════════════════════════════════
+// FAB POSITION
+// ══════════════════════════════════════════════
+function positionFab() {
+  const fab = document.getElementById('fab');
+  const app = document.getElementById('app');
+  fab.style.right = ((window.innerWidth - app.offsetWidth)/2 + 20) + 'px';
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+loadState();
+renderAll();
+positionFab();
+
+setInterval(() => { checkAlarms(); if (currentTab === 'today') renderHero(); }, 60000);
+checkAlarms();
+
+(function cleanLogs() {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-90);
+  Object.keys(state.logs).forEach(k => { if (new Date(k) < cutoff) delete state.logs[k]; });
+  saveState();
+})();
+
+window.addEventListener('resize', positionFab);
+window.addEventListener('focus', () => { checkAlarms(); renderAll(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { checkAlarms(); renderAll(); } });
+</script>
+</body>
+</html>
